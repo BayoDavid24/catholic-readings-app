@@ -110,7 +110,7 @@ function toggleMode() {
   document.body.classList.toggle("dark");
 }
 
-// Small sample readings dataset
+// Sample readings JSON for demo
 const readingsData = {
   "2026-02-15": {
     firstReading: "Jeremiah 17:5-8",
@@ -126,48 +126,7 @@ const readingsData = {
   }
 };
 
-// Small sample Douay-Rheims Bible JSON
-// In real app, replace with full EntireBible-DR.json
-const bibleData = {
-  "Jeremiah": {
-    "17": {
-      "5": "Thus saith the Lord: Cursed be the man that trusteth in man...",
-      "6": "And whose heart departeth from the Lord...",
-      "7": "Blessed is the man that trusteth in the Lord...",
-      "8": "For he shall be like a tree planted by the waters..."
-    }
-  },
-  "Psalm": {
-    "1": {
-      "1": "Blessed is the man that hath not walked in the counsel of the ungodly...",
-      "2": "But his will is in the law of the Lord...",
-      "3": "And he shall be like a tree planted near the waters...",
-      "4": "Not so the wicked..."
-    }
-  },
-  "1 Corinthians": {
-    "15": {
-      "12": "Now if Christ be preached, that he rose from the dead...",
-      "16": "For if the dead rise not...",
-      "17": "And if Christ rise not...",
-      "18": "Then they also which are fallen asleep in Christ..."
-    }
-  },
-  "Luke": {
-    "6": {
-      "17": "And he came down with them, and stood on a plain...",
-      "20": "And lifting up his eyes on his disciples, he said...",
-      "21": "Blessed are ye that hunger now...",
-      "22": "Blessed are ye, when men shall hate you...",
-      "23": "Rejoice ye in that day, and leap for joy...",
-      "24": "But woe unto you that are rich...",
-      "25": "Woe to you that are full now...",
-      "26": "Woe to you that laugh now..."
-    }
-  }
-};
-
-// Parse a reference like "Luke 6:17,20-26" or "Psalm 1:1-4"
+// Parse references like "Luke 6:17,20-26" or "Psalm 1:1-4"
 function parseReference(ref) {
   const parts = ref.split(" ");
   const book = parts.slice(0, parts.length - 1).join(" ");
@@ -188,6 +147,7 @@ function parseReference(ref) {
   return { book, chapter: parseInt(chapter), start: parseInt(start), end: parseInt(end) };
 }
 
+// Render a section card
 function renderSection(title, reference, bible) {
   if (!reference) return "";
 
@@ -203,18 +163,35 @@ function renderSection(title, reference, bible) {
   return html;
 }
 
-function display() {
-  const today = new Date();
-  const key = today.toISOString().split("T")[0]; // "YYYY-MM-DD"
-  const todayReadings = readingsData[key] || readingsData["2026-02-15"]; // fallback
+// Load full Bible JSON from GitHub
+async function getBible() {
+  const res = await fetch(
+    "https://raw.githubusercontent.com/xxruyle/Bible-DouayRheims/master/EntireBible-DR.json"
+  );
+  return await res.json();
+}
 
-  let html = "";
-  html += renderSection("First Reading", todayReadings.firstReading, bibleData);
-  html += renderSection("Responsorial Psalm", todayReadings.psalm, bibleData);
-  html += renderSection("Second Reading", todayReadings.secondReading, bibleData);
-  html += renderSection("Gospel", todayReadings.gospel, bibleData);
+async function display() {
+  try {
+    const today = new Date();
+    const key = today.toISOString().split("T")[0];
+    const todayReadings = readingsData[key] || readingsData["2026-02-15"];
 
-  document.getElementById("content").innerHTML = html;
+    const bible = await getBible();
+
+    let html = "";
+    html += renderSection("First Reading", todayReadings.firstReading, bible);
+    html += renderSection("Responsorial Psalm", todayReadings.psalm, bible);
+    html += renderSection("Second Reading", todayReadings.secondReading, bible);
+    html += renderSection("Gospel", todayReadings.gospel, bible);
+
+    document.getElementById("content").innerHTML = html;
+
+  } catch (err) {
+    document.getElementById("content").innerHTML =
+      "Could not load today's readings. Please try again later.";
+    console.error(err);
+  }
 }
 
 display();
