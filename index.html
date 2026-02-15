@@ -77,6 +77,15 @@
       font-size: 15px;
     }
 
+    #datepicker {
+      display: block;
+      margin: 0 auto 20px auto;
+      padding: 8px 12px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid var(--accent);
+    }
+
     footer {
       text-align: center;
       padding: 30px 20px;
@@ -95,6 +104,10 @@
   <button class="toggle" onclick="toggleMode()">Toggle Theme</button>
 </header>
 
+<div class="container">
+  <input type="date" id="datepicker" />
+</div>
+
 <div class="container" id="content">
   Loading readings...
 </div>
@@ -110,7 +123,7 @@ function toggleMode() {
   document.body.classList.toggle("dark");
 }
 
-// Sample readings JSON for demo
+// Sample readings JSON
 const readingsData = {
   "2026-02-15": {
     firstReading: "Jeremiah 17:5-8",
@@ -126,7 +139,15 @@ const readingsData = {
   }
 };
 
-// Parse references like "Luke 6:17,20-26" or "Psalm 1:1-4"
+// Load full Bible JSON
+async function getBible() {
+  const res = await fetch(
+    "https://raw.githubusercontent.com/xxruyle/Bible-DouayRheims/master/EntireBible-DR.json"
+  );
+  return await res.json();
+}
+
+// Parse references like "Luke 6:17,20-26"
 function parseReference(ref) {
   const parts = ref.split(" ");
   const book = parts.slice(0, parts.length - 1).join(" ");
@@ -149,11 +170,11 @@ function parseReference(ref) {
 
 // Render a section card
 function renderSection(title, reference, bible) {
-  if (!reference) return "";
+  if (!reference) return `<div class="card"><h2>${title}</h2><em>No reading today.</em></div>`;
 
   const parsed = parseReference(reference);
   const chapterData = bible[parsed.book]?.[parsed.chapter];
-  if (!chapterData) return "";
+  if (!chapterData) return `<div class="card"><h2>${title}</h2><em>Verse data not found.</em></div>`;
 
   let html = `<div class="card"><h2>${title}</h2><strong>${reference}</strong><br><br>`;
   for (let i = parsed.start; i <= parsed.end; i++) {
@@ -163,21 +184,11 @@ function renderSection(title, reference, bible) {
   return html;
 }
 
-// Load full Bible JSON from GitHub
-async function getBible() {
-  const res = await fetch(
-    "https://raw.githubusercontent.com/xxruyle/Bible-DouayRheims/master/EntireBible-DR.json"
-  );
-  return await res.json();
-}
-
-async function display() {
+async function display(dateKey) {
   try {
-    const today = new Date();
-    const key = today.toISOString().split("T")[0];
-    const todayReadings = readingsData[key] || readingsData["2026-02-15"];
-
     const bible = await getBible();
+    const key = dateKey || new Date().toISOString().split("T")[0];
+    const todayReadings = readingsData[key] || readingsData["2026-02-15"];
 
     let html = "";
     html += renderSection("First Reading", todayReadings.firstReading, bible);
@@ -189,12 +200,25 @@ async function display() {
 
   } catch (err) {
     document.getElementById("content").innerHTML =
-      "Could not load today's readings. Please try again later.";
+      "Could not load readings. Please try again later.";
     console.error(err);
   }
 }
 
+// Initialize date picker
+const datepicker = document.getElementById("datepicker");
+const todayStr = new Date().toISOString().split("T")[0];
+datepicker.value = todayStr;
+datepicker.max = todayStr;
+
+datepicker.addEventListener("change", () => {
+  const selectedDate = datepicker.value;
+  display(selectedDate);
+});
+
+// Display today's readings on load
 display();
+
 </script>
 
 </body>
